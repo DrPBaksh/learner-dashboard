@@ -1,1 +1,126 @@
-import React, { useState, useEffect } from 'react';\nimport AuthSection from './components/AuthSection';\nimport LearnerSelector from './components/LearnerSelector';\nimport ComponentsTable from './components/ComponentsTable';\nimport { loadLearnersFromS3, fetchLearnerComponents } from './utils/apiService';\n\nfunction App() {\n  const [learners, setLearners] = useState([]);\n  const [selectedLearner, setSelectedLearner] = useState('');\n  const [authCookies, setAuthCookies] = useState('');\n  const [components, setComponents] = useState([]);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState('');\n  const [success, setSuccess] = useState('');\n\n  // Load learners from S3 on component mount\n  useEffect(() => {\n    loadLearners();\n  }, []);\n\n  const loadLearners = async () => {\n    try {\n      // You'll need to replace this with your actual S3 bucket URL after deployment\n      const bucketUrl = process.env.REACT_APP_S3_BUCKET_URL || 'https://learner-dashboard-data-123456789012-us-east-1.s3.amazonaws.com';\n      const learnerData = await loadLearnersFromS3(bucketUrl);\n      \n      setLearners(learnerData);\n      setSuccess('Learners loaded successfully!');\n      \n      // Clear success message after 3 seconds\n      setTimeout(() => setSuccess(''), 3000);\n    } catch (err) {\n      setError('Failed to load learners. Please check your S3 configuration.');\n      console.error('Error loading learners:', err);\n    }\n  };\n\n  const handleFetchComponents = async () => {\n    if (!selectedLearner || !authCookies) {\n      setError('Please select a learner and provide authentication cookies.');\n      return;\n    }\n\n    setLoading(true);\n    setError('');\n    setSuccess('');\n\n    try {\n      const componentsWithStatus = await fetchLearnerComponents(selectedLearner, authCookies);\n      setComponents(componentsWithStatus);\n      setSuccess(`Loaded ${componentsWithStatus.length} components successfully!`);\n      \n      // Clear success message after 3 seconds\n      setTimeout(() => setSuccess(''), 3000);\n    } catch (err) {\n      setError(`Failed to fetch data: ${err.response?.status || err.message}`);\n      console.error('Error fetching components:', err);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const clearError = () => setError('');\n  const clearSuccess = () => setSuccess('');\n\n  return (\n    <div className=\"container\">\n      <div className=\"header\">\n        <h1>📚 Learner Dashboard</h1>\n        <p>Track learning progress and component status</p>\n      </div>\n\n      {error && (\n        <div className=\"alert alert-error\">\n          {error}\n          <button className=\"alert-close\" onClick={clearError}>×</button>\n        </div>\n      )}\n      \n      {success && (\n        <div className=\"alert alert-success\">\n          {success}\n          <button className=\"alert-close\" onClick={clearSuccess}>×</button>\n        </div>\n      )}\n\n      <AuthSection \n        authCookies={authCookies} \n        onAuthChange={setAuthCookies} \n      />\n\n      <LearnerSelector \n        learners={learners}\n        selectedLearner={selectedLearner}\n        onLearnerChange={setSelectedLearner}\n        loading={loading}\n      />\n\n      <div className=\"fetch-section\">\n        <button \n          onClick={handleFetchComponents} \n          disabled={loading || !selectedLearner || !authCookies}\n          className=\"fetch-button\"\n        >\n          {loading ? '⏳ Loading...' : '🔄 Fetch Components'}\n        </button>\n        \n        {selectedLearner && learners.length > 0 && (\n          <p className=\"selected-learner-info\">\n            Selected: <strong>{learners.find(l => l.id === selectedLearner)?.name}</strong> (ID: {selectedLearner})\n          </p>\n        )}\n      </div>\n\n      <div className=\"components-section\">\n        <h2>📋 Learning Components</h2>\n        <ComponentsTable \n          components={components} \n          loading={loading} \n        />\n      </div>\n    </div>\n  );\n}\n\nexport default App;
+import React, { useState, useEffect } from 'react';
+import AuthSection from './components/AuthSection';
+import LearnerSelector from './components/LearnerSelector';
+import ComponentsTable from './components/ComponentsTable';
+import { loadLearnersFromS3, fetchLearnerComponents } from './utils/apiService';
+
+function App() {
+  const [learners, setLearners] = useState([]);
+  const [selectedLearner, setSelectedLearner] = useState('');
+  const [authCookies, setAuthCookies] = useState('');
+  const [components, setComponents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Load learners from S3 on component mount
+  useEffect(() => {
+    loadLearners();
+  }, []);
+
+  const loadLearners = async () => {
+    try {
+      // Use the S3 bucket URL from environment or default
+      const bucketUrl = process.env.REACT_APP_S3_BUCKET_URL || 'https://learner-dashboard-data-338971307797-eu-west-2.s3.amazonaws.com';
+      const learnerData = await loadLearnersFromS3(bucketUrl);
+      
+      setLearners(learnerData);
+      setSuccess('Learners loaded successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to load learners. Please check your S3 configuration.');
+      console.error('Error loading learners:', err);
+    }
+  };
+
+  const handleFetchComponents = async () => {
+    if (!selectedLearner || !authCookies) {
+      setError('Please select a learner and provide authentication cookies.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const componentsWithStatus = await fetchLearnerComponents(selectedLearner, authCookies);
+      setComponents(componentsWithStatus);
+      setSuccess(`Loaded ${componentsWithStatus.length} components successfully!`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(`Failed to fetch data: ${err.response?.status || err.message}`);
+      console.error('Error fetching components:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearError = () => setError('');
+  const clearSuccess = () => setSuccess('');
+
+  return (
+    <div className="container">
+      <div className="header">
+        <h1>📚 Learner Dashboard</h1>
+        <p>Track learning progress and component status</p>
+      </div>
+
+      {error && (
+        <div className="alert alert-error">
+          {error}
+          <button className="alert-close" onClick={clearError}>×</button>
+        </div>
+      )}
+      
+      {success && (
+        <div className="alert alert-success">
+          {success}
+          <button className="alert-close" onClick={clearSuccess}>×</button>
+        </div>
+      )}
+
+      <AuthSection 
+        authCookies={authCookies} 
+        onAuthChange={setAuthCookies} 
+      />
+
+      <LearnerSelector 
+        learners={learners}
+        selectedLearner={selectedLearner}
+        onLearnerChange={setSelectedLearner}
+        loading={loading}
+      />
+
+      <div className="fetch-section">
+        <button 
+          onClick={handleFetchComponents} 
+          disabled={loading || !selectedLearner || !authCookies}
+          className="fetch-button"
+        >
+          {loading ? '⏳ Loading...' : '🔄 Fetch Components'}
+        </button>
+        
+        {selectedLearner && learners.length > 0 && (
+          <p className="selected-learner-info">
+            Selected: <strong>{learners.find(l => l.id === selectedLearner)?.name}</strong> (ID: {selectedLearner})
+          </p>
+        )}
+      </div>
+
+      <div className="components-section">
+        <h2>📋 Learning Components</h2>
+        <ComponentsTable 
+          components={components} 
+          loading={loading} 
+        />
+      </div>
+    </div>
+  );
+}
+
+export default App;
