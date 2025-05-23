@@ -20,9 +20,12 @@ function App() {
 
   const loadLearners = async () => {
     try {
-      // Use the S3 bucket URL from environment or default
+      // Use the S3 bucket URL from environment or default to your actual bucket
       const bucketUrl = process.env.REACT_APP_S3_BUCKET_URL || 'https://learner-dashboard-data-338971307797-eu-west-2.s3.amazonaws.com';
+      console.log('Loading learners from:', bucketUrl);
+      
       const learnerData = await loadLearnersFromS3(bucketUrl);
+      console.log('Loaded learners:', learnerData);
       
       setLearners(learnerData);
       setSuccess('Learners loaded successfully!');
@@ -30,8 +33,8 @@ function App() {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to load learners. Please check your S3 configuration.');
       console.error('Error loading learners:', err);
+      setError(`Failed to load learners: ${err.message}`);
     }
   };
 
@@ -41,20 +44,25 @@ function App() {
       return;
     }
 
+    console.log('Fetching components for learner:', selectedLearner);
+    console.log('Using cookies:', authCookies.substring(0, 50) + '...');
+
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
       const componentsWithStatus = await fetchLearnerComponents(selectedLearner, authCookies);
+      console.log('Received components:', componentsWithStatus);
+      
       setComponents(componentsWithStatus);
       setSuccess(`Loaded ${componentsWithStatus.length} components successfully!`);
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(`Failed to fetch data: ${err.response?.status || err.message}`);
       console.error('Error fetching components:', err);
+      setError(`Failed to fetch data: ${err.response?.status || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -118,6 +126,15 @@ function App() {
           components={components} 
           loading={loading} 
         />
+      </div>
+      
+      {/* Debug info */}
+      <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px', fontSize: '12px' }}>
+        <p><strong>Debug Info:</strong></p>
+        <p>Bucket URL: {process.env.REACT_APP_S3_BUCKET_URL || 'Using default'}</p>
+        <p>Learners loaded: {learners.length}</p>
+        <p>Selected learner: {selectedLearner}</p>
+        <p>Auth cookies provided: {authCookies ? 'Yes' : 'No'}</p>
       </div>
     </div>
   );
